@@ -1,0 +1,87 @@
+# Build directories
+build/
+debug/
+release/
+out/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# C++ compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Temporary files
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# IDE files
+*.cbp
+*.layout
+*.depend
+*.workspace
+*.vcxproj*
+*.sln
+*.suo
+*.user
+*.ncb
+*.aps
+*.plg
+*.opt
+*.clw
+
+# Logs
+*.log
+
+# Core dumps
+core
+core.*
+
+# Generated documentation
+docs/html/
+docs/latex/
+
+# Package managers
+conan.lock
+vcpkg_installed/
+
+# Profiling data
+gmon.out
+*.gcov
+*.gcda
+*.gcno
+
+# Static analysis
+cppcheck-result.xml
