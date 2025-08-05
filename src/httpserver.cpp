@@ -66,12 +66,15 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
 void HttpServer::handle_client()
 {
     char buffer[1024];
+    auto bytes_received = recv(m_client_socket, buffer, sizeof(buffer), 0);
 
-    if (recv(m_client_socket, buffer, sizeof(buffer), 0) < 0)
+    if (bytes_received < 0)
     {
         std::cerr << "Failed to receive request\n";
         return;
     }
+
+    buffer[bytes_received] = '\0';
 
     std::cout << "Received request:\n"
               << buffer << "\n";
