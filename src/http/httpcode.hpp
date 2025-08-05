@@ -155,4 +155,97 @@ inline HttpCode httpCodeFromString(const std::string &code)
     }
 }
 
+inline std::string httpCodeToString(HttpCode code)
+{
+    switch (code)
+    {
+    // 1xx Informational
+    case HttpCode::Continue:
+        return "100 Continue";
+    case HttpCode::SwitchingProtocols:
+        return "101 Switching Protocols";
+
+    // 2xx Success
+    case HttpCode::OK:
+        return "200 OK";
+    case HttpCode::Created:
+        return "201 Created";
+    case HttpCode::Accepted:
+        return "202 Accepted";
+    case HttpCode::NoContent:
+        return "204 No Content";
+    case HttpCode::PartialContent:
+        return "206 Partial Content";
+
+    // 3xx Redirection
+    case HttpCode::MultipleChoices:
+        return "300 Multiple Choices";
+    case HttpCode::MovedPermanently:
+        return "301 Moved Permanently";
+    case HttpCode::Found:
+        return "302 Found";
+    case HttpCode::SeeOther:
+        return "303 See Other";
+    case HttpCode::NotModified:
+        return "304 Not Modified";
+    case HttpCode::TemporaryRedirect:
+        return "307 Temporary Redirect";
+    case HttpCode::PermanentRedirect:
+        return "308 Permanent Redirect";
+
+    // 4xx Client Error
+    case HttpCode::BadRequest:
+        return "400 Bad Request";
+    case HttpCode::Unauthorized:
+        return "401 Unauthorized";
+    case HttpCode::Forbidden:
+        return "403 Forbidden";
+    case HttpCode::NotFound:
+        return "404 Not Found";
+    case HttpCode::MethodNotAllowed:
+        return "405 Method Not Allowed";
+    case HttpCode::NotAcceptable:
+        return "406 Not Acceptable";
+    case HttpCode::RequestTimeout:
+        return "408 Request Timeout";
+    case HttpCode::Conflict:
+        return "409 Conflict";
+    case HttpCode::Gone:
+        return "410 Gone";
+    case HttpCode::LengthRequired:
+        return "411 Length Required";
+    case HttpCode::PreconditionFailed:
+        return "412 Precondition Failed";
+    case HttpCode::PayloadTooLarge:
+        return "413 Payload Too Large";
+    case HttpCode::URITooLong:
+        return "414 URI Too Long";
+    case HttpCode::UnsupportedMediaType:
+        return "415 Unsupported Media Type";
+    case HttpCode::RangeNotSatisfiable:
+        return "416 Range Not Satisfiable";
+    case HttpCode::UnprocessableEntity:
+        return "422 Unprocessable Entity";
+    case HttpCode::TooManyRequests:
+        return "429 Too Many Requests";
+
+    // 5xx Server Error
+    case HttpCode::InternalServerError:
+        return "500 Internal Server Error";
+    case HttpCode::NotImplemented:
+        return "501 Not Implemented";
+    case HttpCode::BadGateway:
+        return "502 Bad Gateway";
+    case HttpCode::ServiceUnavailable:
+        return "503 Service Unavailable";
+    case HttpCode::GatewayTimeout:
+        return "504 Gateway Timeout";
+    case HttpCode::HTTPVersionNotSupported:
+        return "505 HTTP Version Not Supported";
+
+    default:
+        throw std::invalid_argument("Unknown HTTP status code");
+    }
+}
+
 #endif // HTTPCODE_HPP

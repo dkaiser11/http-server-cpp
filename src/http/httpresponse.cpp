@@ -75,3 +75,19 @@ const std::string &HttpResponse::getBody() const
 {
     return body;
 }
+
+std::string HttpResponse::toString() const
+{
+    std::ostringstream oss;
+    oss << version << " " << httpCodeToString(code) << "\r\n";
+
+    for (const auto &[name, value] : headers)
+    {
+        oss << name << ": " << value << "\r\n";
+    }
+
+    oss << "\r\n"
+        << body;
+
+    return oss.str();
+}

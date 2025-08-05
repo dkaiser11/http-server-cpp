@@ -42,4 +42,31 @@ inline HttpMethod httpMethodFromString(const std::string &method)
     throw std::invalid_argument("Unknown HTTP method: " + method);
 }
 
+inline std::string httpMethodToString(const HttpMethod &method)
+{
+    switch (method)
+    {
+    case HttpMethod::GET:
+        return "GET";
+    case HttpMethod::POST:
+        return "POST";
+    case HttpMethod::PUT:
+        return "PUT";
+    case HttpMethod::DELETE:
+        return "DELETE";
+    case HttpMethod::PATCH:
+        return "PATCH";
+    case HttpMethod::HEAD:
+        return "HEAD";
+    case HttpMethod::OPTIONS:
+        return "OPTIONS";
+    case HttpMethod::CONNECT:
+        return "CONNECT";
+    case HttpMethod::TRACE:
+        return "TRACE";
+    default:
+        throw std::invalid_argument("Unknown HttpMethod enum value");
+    }
+}
+
 #endif // HTTPMETHOD_HPP

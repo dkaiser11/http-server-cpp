@@ -34,6 +34,8 @@ public:
     HttpCode getCode() const;
     const std::map<std::string, std::string> &getHeaders() const;
     const std::string &getBody() const;
+
+    std::string toString() const;
 };
 
 #endif // HTTPRESPONSE_HPP

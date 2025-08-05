@@ -36,6 +36,8 @@ public:
     const std::string &getVersion() const;
     const std::map<std::string, std::string> &getHeaders() const;
     const std::string &getBody() const;
+
+    std::string toString() const;
 };
 
 #endif // HTTPREQUEST_HPP

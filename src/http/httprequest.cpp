@@ -2,6 +2,7 @@
 #include "http/httprequest.hpp"
 #include <sstream>
 #include <algorithm>
+#include "httprequest.hpp"
 
 HttpRequest HttpRequest::fromString(std::string rawRequest)
 {
@@ -82,4 +83,20 @@ const std::map<std::string, std::string> &HttpRequest::getHeaders() const
 const std::string &HttpRequest::getBody() const
 {
     return body;
+}
+
+std::string HttpRequest::toString() const
+{
+    std::ostringstream oss;
+    oss << httpMethodToString(method) << " " << uri << " " << version << "\r\n";
+
+    for (const auto &[name, value] : headers)
+    {
+        oss << name << ": " << value << "\r\n";
+    }
+
+    oss << "\r\n"
+        << body;
+
+    return oss.str();
 }
