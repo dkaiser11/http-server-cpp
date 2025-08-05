@@ -15,7 +15,7 @@ private:
     std::string body;
 
     void parseRequestLine(const std::string &line);
-    void parseHeader(const std::string &headerLines);
+    void parseHeader(const std::string &headerLine);
     void parseBody(const std::string &bodyContent);
 
 public:
