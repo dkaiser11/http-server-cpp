@@ -6,6 +6,32 @@ project(http-server-cpp)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Set default build type to Debug if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+# Debug configuration
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(STATUS "Debug build configuration")
+    # Enable debug symbols and disable optimizations
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
+    # Add additional debug flags
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    # Enable sanitizers for debugging (optional)
+    option(ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" ON)
+    if(ENABLE_SANITIZERS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")
+        set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address -fsanitize=undefined")
+    endif()
+endif()
+
+# Release configuration
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(STATUS "Release build configuration")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+endif()
+
 # Find source files (excluding main.cpp for library)
 file(GLOB_RECURSE LIB_SOURCES src/*.cpp src/*.hpp)
 list(REMOVE_ITEM LIB_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
@@ -47,6 +73,17 @@ if(TEST_SOURCES)
     add_executable(tests ${TEST_SOURCES})
     target_link_libraries(tests gtest_main gmock_main)
     target_include_directories(tests PRIVATE "src")
+    
+    # Apply debug flags to tests
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_definitions(tests PRIVATE DEBUG)
+        # Enable verbose test output in debug mode
+        target_compile_definitions(tests PRIVATE GTEST_COLOR=1)
+        # Link sanitizers if enabled
+        if(ENABLE_SANITIZERS)
+            target_link_options(tests PRIVATE -fsanitize=address -fsanitize=undefined)
+        endif()
+    endif()
     
     # Link with the library if it exists
     if(LIB_SOURCES)
