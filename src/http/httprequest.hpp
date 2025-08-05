@@ -37,6 +37,13 @@ public:
     const std::map<std::string, std::string> &getHeaders() const;
     const std::string &getBody() const;
 
+    void setMethod(HttpMethod method);
+    void setUri(const std::string &uri);
+    void setVersion(const std::string &version);
+    void addHeader(const std::string &name, const std::string &value);
+    void removeHeader(const std::string &name);
+    void setBody(const std::string &body);
+
     std::string toString() const;
 };
 

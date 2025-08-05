@@ -85,6 +85,36 @@ const std::string &HttpRequest::getBody() const
     return body;
 }
 
+void HttpRequest::setMethod(HttpMethod method)
+{
+    this->method = method;
+}
+
+void HttpRequest::setUri(const std::string &uri)
+{
+    this->uri = uri;
+}
+
+void HttpRequest::setVersion(const std::string &version)
+{
+    this->version = version;
+}
+
+void HttpRequest::addHeader(const std::string &name, const std::string &value)
+{
+    headers[name] = value;
+}
+
+void HttpRequest::removeHeader(const std::string &name)
+{
+    headers.erase(name);
+}
+
+void HttpRequest::setBody(const std::string &body)
+{
+    this->body = body;
+}
+
 std::string HttpRequest::toString() const
 {
     std::ostringstream oss;

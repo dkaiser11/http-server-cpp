@@ -2,6 +2,7 @@
 #include "http/httpresponse.hpp"
 #include <sstream>
 #include <algorithm>
+#include "httpresponse.hpp"
 
 HttpResponse HttpResponse::fromString(std::string rawResponse)
 {
@@ -74,6 +75,31 @@ const std::map<std::string, std::string> &HttpResponse::getHeaders() const
 const std::string &HttpResponse::getBody() const
 {
     return body;
+}
+
+void HttpResponse::setVersion(const std::string &version)
+{
+    this->version = version;
+}
+
+void HttpResponse::setCode(HttpCode code)
+{
+    this->code = code;
+}
+
+void HttpResponse::setBody(const std::string &body)
+{
+    this->body = body;
+}
+
+void HttpResponse::addHeader(const std::string &name, const std::string &value)
+{
+    headers[name] = value;
+}
+
+void HttpResponse::removeHeader(const std::string &name)
+{
+    headers.erase(name);
 }
 
 std::string HttpResponse::toString() const
