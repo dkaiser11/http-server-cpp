@@ -60,6 +60,11 @@ void HttpRequest::parseBody(const std::string &bodyContent)
     this->body = bodyContent;
 }
 
+HttpRequest::HttpRequest()
+    : method(HttpMethod::GET), uri("/"), version("HTTP/1.1"), headers(), body()
+{
+}
+
 HttpMethod HttpRequest::getMethod() const
 {
     return method;

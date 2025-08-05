@@ -57,6 +57,11 @@ void HttpResponse::parseBody(const std::string &bodyContent)
     this->body = bodyContent;
 }
 
+HttpResponse::HttpResponse()
+    : version("HTTP/1.1"), code(HttpCode::OK), headers(), body()
+{
+}
+
 const std::string &HttpResponse::getVersion() const
 {
     return version;

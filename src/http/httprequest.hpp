@@ -19,7 +19,7 @@ private:
     void parseBody(const std::string &bodyContent);
 
 public:
-    HttpRequest() = default;
+    HttpRequest();
 
     HttpRequest(const HttpRequest &other) = default;
     HttpRequest &operator=(const HttpRequest &other) = default;
