@@ -7,10 +7,18 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <mutex>
+#include <netinet/in.h>
 
 HttpServer::HttpServer()
     : m_server_file_descriptor(-1),
       m_server_address{}
+{
+}
+
+HttpServer::HttpServer(const Router &router)
+    : m_server_file_descriptor(-1),
+      m_server_address{},
+      m_router(router)
 {
 }
 

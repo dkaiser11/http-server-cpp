@@ -17,6 +17,7 @@ private:
 
 public:
     HttpServer();
+    HttpServer(const Router &router);
 
     HttpServer(const HttpServer &) = delete;
     HttpServer &operator=(const HttpServer &) = delete;

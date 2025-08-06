@@ -2,7 +2,6 @@
 #include "http/httprequest.hpp"
 #include <sstream>
 #include <algorithm>
-#include "httprequest.hpp"
 
 HttpRequest HttpRequest::fromString(std::string rawRequest)
 {
