@@ -4,77 +4,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 
-HttpServer::HttpServer()
-    : m_server_file_descriptor(-1),
-      m_client_socket(-1),
-      m_running(false),
-      m_port(8080),
-      m_connection_backlog(5),
-      m_reuse(1)
-{
-}
-
-HttpServer::~HttpServer()
-{
-    stop();
-}
-
-bool HttpServer::start(int port, int connection_backlog, int reuse)
-{
-    if (m_running.load())
-    {
-        std::cerr << "Server is already running\n";
-        return false;
-    }
-
-    m_port = port;
-    m_connection_backlog = connection_backlog;
-    m_reuse = reuse;
-
-    try
-    {
-        m_server_thread = std::make_unique<std::thread>(&HttpServer::server_loop, this);
-        return true;
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Failed to start server thread: " << e.what() << "\n";
-        return false;
-    }
-}
-
-void HttpServer::stop()
-{
-    if (!m_running.load())
-    {
-        return;
-    }
-
-    m_running.store(false);
-
-    // Close the server socket to unblock accept()
-    if (m_server_file_descriptor >= 0)
-    {
-        close(m_server_file_descriptor);
-        m_server_file_descriptor = -1;
-    }
-
-    // Wait for the server thread to finish
-    if (m_server_thread && m_server_thread->joinable())
-    {
-        m_server_thread->join();
-        m_server_thread.reset();
-    }
-
-    std::cout << "Server stopped\n";
-}
-
-bool HttpServer::is_running() const
-{
-    return m_running.load();
-}
-
-void HttpServer::server_loop()
+int HttpServer::run(int port, int connection_backlog, int reuse)
 {
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
@@ -84,82 +14,51 @@ void HttpServer::server_loop()
     if (m_server_file_descriptor < 0)
     {
         std::cerr << "Failed to create server socket\n";
-        return;
+        return 1;
     }
 
-    if (setsockopt(m_server_file_descriptor, SOL_SOCKET, SO_REUSEADDR, &m_reuse, sizeof(m_reuse)) < 0)
+    if (setsockopt(m_server_file_descriptor, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {
         std::cerr << "setsockopt failed\n";
-        close(m_server_file_descriptor);
-        return;
+        return 1;
     }
 
     m_server_address.sin_family = AF_INET;
     m_server_address.sin_addr.s_addr = INADDR_ANY;
-    m_server_address.sin_port = htons(m_port);
+    m_server_address.sin_port = htons(port);
 
     if (bind(m_server_file_descriptor, (struct sockaddr *)&m_server_address, sizeof(m_server_address)) != 0)
     {
-        std::cerr << "Failed to bind to port " << m_port << "\n";
-        close(m_server_file_descriptor);
-        return;
+        std::cerr << "Failed to bind to port " << port << "\n";
+        return 1;
     }
 
-    if (listen(m_server_file_descriptor, m_connection_backlog) != 0)
+    if (listen(m_server_file_descriptor, connection_backlog) != 0)
     {
         std::cerr << "listen failed\n";
-        close(m_server_file_descriptor);
-        return;
+        return 1;
     }
-
-    m_running.store(true);
-    std::cout << "Server started on port " << m_port << "\n";
-    std::cout << "Waiting for clients to connect...\n";
 
     int client_address_length = sizeof(m_client_address);
 
-    while (m_running.load())
+    std::cout << "Waiting for a client to connect...\n";
+
+    while (true)
     {
         m_client_socket = accept(m_server_file_descriptor, (struct sockaddr *)&m_client_address, (socklen_t *)&client_address_length);
 
         if (m_client_socket < 0)
         {
-            if (m_running.load())
-            {
-                std::cerr << "Failed to accept connection\n";
-            }
+            std::cerr << "Failed to accept connection\n";
             continue;
         }
 
-        if (!m_running.load())
-        {
-            close(m_client_socket);
-            break;
-        }
-
         std::cout << "Client connected\n";
+
         handle_client();
     }
 
-    if (m_server_file_descriptor >= 0)
-    {
-        close(m_server_file_descriptor);
-        m_server_file_descriptor = -1;
-    }
-}
-
-int HttpServer::run(int port, int connection_backlog, int reuse)
-{
-    if (!start(port, connection_backlog, reuse))
-    {
-        return 1;
-    }
-
-    if (m_server_thread && m_server_thread->joinable())
-    {
-        m_server_thread->join();
-        m_server_thread.reset();
-    }
+    close(m_server_file_descriptor);
 
     return 0;
 }
