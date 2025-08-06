@@ -3,13 +3,17 @@
 
 #include "http/httprequest.hpp"
 #include "http/httpresponse.hpp"
+#include "router.hpp"
 #include <arpa/inet.h>
+#include <mutex>
 
 class HttpServer
 {
 private:
     int m_server_file_descriptor;
     struct sockaddr_in m_server_address;
+    Router m_router;
+    mutable std::mutex m_output_mutex;
 
 public:
     HttpServer();
@@ -21,6 +25,9 @@ public:
     HttpServer &operator=(HttpServer &&) = delete;
 
     ~HttpServer();
+
+    Router &getRouter() { return m_router; }
+    const Router &getRouter() const { return m_router; }
 
     int run(int port = 8080, int connection_backlog = 5, int reuse = 1);
 

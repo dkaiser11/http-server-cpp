@@ -6,6 +6,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <mutex>
 
 HttpServer::HttpServer()
     : m_server_file_descriptor(-1),
@@ -76,11 +77,17 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
         {
             if (errno == EINTR || errno == EBADF)
                 break;
-            std::cerr << "Failed to accept connection: " << strerror(errno) << "\n";
+            {
+                std::lock_guard<std::mutex> lock(m_output_mutex);
+                std::cerr << "Failed to accept connection: " << strerror(errno) << "\n";
+            }
             continue;
         }
 
-        std::cout << "Client connected\n";
+        {
+            std::lock_guard<std::mutex> lock(m_output_mutex);
+            std::cout << "Client connected\n";
+        }
 
         std::thread([this, client_file_descriptor]()
                     { handle_client(client_file_descriptor); })
@@ -96,14 +103,29 @@ void HttpServer::handle_client(int client_file_descriptor)
 
     if (receive_request(client_file_descriptor, request) < 0)
     {
-        std::cerr << "Failed to receive request: " << strerror(errno) << "\n";
+        {
+            std::lock_guard<std::mutex> lock(m_output_mutex);
+            std::cerr << "Failed to receive request: " << strerror(errno) << "\n";
+        }
         close(client_file_descriptor);
         return;
     }
 
-    HttpResponse response;
+    // Use router to handle the request and generate response
+    HttpResponse response = m_router.handleRequest(request);
 
-    send_response(client_file_descriptor, response);
+    if (send_response(client_file_descriptor, response) < 0)
+    {
+        std::lock_guard<std::mutex> lock(m_output_mutex);
+        std::cerr << "Failed to send response to client\n";
+    }
+    else
+    {
+        std::lock_guard<std::mutex> lock(m_output_mutex);
+        std::cout << "Request processed: " << static_cast<int>(request.getMethod())
+                  << " " << request.getUri() << " -> "
+                  << static_cast<int>(response.getCode()) << "\n";
+    }
 
     close(client_file_descriptor);
 }
@@ -115,6 +137,7 @@ int HttpServer::receive_request(int client_file_descriptor, HttpRequest &request
 
     if (bytes_received <= 0)
     {
+        std::lock_guard<std::mutex> lock(m_output_mutex);
         if (bytes_received == 0)
             std::cout << "Client disconnected\n";
         else
@@ -125,19 +148,34 @@ int HttpServer::receive_request(int client_file_descriptor, HttpRequest &request
 
     buffer[bytes_received] = '\0';
 
-    std::cout << "Received request:\n"
-              << buffer << "\n";
+    {
+        std::lock_guard<std::mutex> lock(m_output_mutex);
+        std::cout << "Received request:\n"
+                  << buffer << "\n";
+    }
 
-    request = HttpRequest::fromString(std::string(buffer, bytes_received));
+    try
+    {
+        request = HttpRequest::fromString(std::string(buffer, bytes_received));
+    }
+    catch (const std::exception &e)
+    {
+        std::lock_guard<std::mutex> lock(m_output_mutex);
+        std::cerr << "Failed to parse HTTP request: " << e.what() << "\n";
+        return -1;
+    }
+
     return bytes_received;
 }
 
 int HttpServer::send_response(int client_file_descriptor, HttpResponse &response)
 {
-    int bytes_sent = send(client_file_descriptor, response.toString().c_str(), response.toString().size(), 0);
+    std::string response_str = response.toString();
+    int bytes_sent = send(client_file_descriptor, response_str.c_str(), response_str.size(), 0);
 
     if (bytes_sent < 0)
     {
+        std::lock_guard<std::mutex> lock(m_output_mutex);
         std::cerr << "Failed to send response: " << strerror(errno) << "\n";
     }
 
