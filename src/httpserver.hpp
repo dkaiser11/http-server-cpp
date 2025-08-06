@@ -1,6 +1,8 @@
 #ifndef HTTPSERVER_HPP
 #define HTTPSERVER_HPP
 
+#include "http/httprequest.hpp"
+#include "http/httpresponse.hpp"
 #include <arpa/inet.h>
 
 class HttpServer
@@ -8,11 +10,9 @@ class HttpServer
 private:
     int m_server_file_descriptor;
     struct sockaddr_in m_server_address;
-    int m_client_socket;
-    struct sockaddr_in m_client_address;
 
 public:
-    HttpServer() = default;
+    HttpServer();
 
     HttpServer(const HttpServer &) = delete;
     HttpServer &operator=(const HttpServer &) = delete;
@@ -20,11 +20,13 @@ public:
     HttpServer(HttpServer &&) = delete;
     HttpServer &operator=(HttpServer &&) = delete;
 
-    ~HttpServer() = default;
+    ~HttpServer();
 
     int run(int port = 8080, int connection_backlog = 5, int reuse = 1);
 
-    void handle_client();
+    void handle_client(int client_file_descriptor);
+    int receive_request(int client_file_descriptor, HttpRequest &request);
+    int send_response(int client_file_descriptor, HttpResponse &response);
 };
 
 #endif // HTTPSERVER_HPP
