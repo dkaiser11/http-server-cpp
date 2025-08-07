@@ -18,7 +18,7 @@ enum class HttpMethod
     TRACE,
 };
 
-inline HttpMethod httpMethodFromString(const std::string &method)
+inline HttpMethod http_method_from_string(const std::string &method)
 {
     if (method == "GET")
         return HttpMethod::GET;
@@ -38,11 +38,9 @@ inline HttpMethod httpMethodFromString(const std::string &method)
         return HttpMethod::CONNECT;
     if (method == "TRACE")
         return HttpMethod::TRACE;
-
     throw std::invalid_argument("Unknown HTTP method: " + method);
 }
-
-inline std::string httpMethodToString(const HttpMethod &method)
+inline std::string http_method_to_string(const HttpMethod &method)
 {
     switch (method)
     {

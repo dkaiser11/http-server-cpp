@@ -54,7 +54,7 @@ enum class HttpCode
     HTTPVersionNotSupported = 505
 };
 
-inline HttpCode httpCodeFromString(const std::string &code)
+inline HttpCode http_code_from_string(const std::string &code)
 {
     try
     {
@@ -155,7 +155,7 @@ inline HttpCode httpCodeFromString(const std::string &code)
     }
 }
 
-inline std::string httpCodeToString(HttpCode code)
+inline std::string http_code_to_string(HttpCode code)
 {
     switch (code)
     {

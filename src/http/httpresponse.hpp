@@ -13,9 +13,9 @@ private:
     std::map<std::string, std::string> headers;
     std::string body;
 
-    void parseResponseLine(const std::string &line);
-    void parseHeader(const std::string &headerLine);
-    void parseBody(const std::string &bodyContent);
+    void parse_response_line(const std::string &line);
+    void parse_header(const std::string &header_line);
+    void parse_body(const std::string &body_content);
 
 public:
     HttpResponse();
@@ -28,20 +28,20 @@ public:
 
     ~HttpResponse() = default;
 
-    static HttpResponse fromString(std::string rawResponse);
+    static HttpResponse from_string(std::string raw_response);
 
-    const std::string &getVersion() const;
-    HttpCode getCode() const;
-    const std::map<std::string, std::string> &getHeaders() const;
-    const std::string &getBody() const;
+    const std::string &get_version() const;
+    HttpCode get_code() const;
+    const std::map<std::string, std::string> &get_headers() const;
+    const std::string &get_body() const;
 
-    void setVersion(const std::string &version);
-    void setCode(HttpCode code);
-    void addHeader(const std::string &name, const std::string &value);
-    void removeHeader(const std::string &name);
-    void setBody(const std::string &body);
+    void set_version(const std::string &version);
+    void set_code(HttpCode code);
+    void add_header(const std::string &name, const std::string &value);
+    void remove_header(const std::string &name);
+    void set_body(const std::string &body);
 
-    std::string toString() const;
+    std::string to_string() const;
 };
 
 #endif // HTTPRESPONSE_HPP

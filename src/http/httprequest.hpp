@@ -14,9 +14,9 @@ private:
     std::map<std::string, std::string> headers;
     std::string body;
 
-    void parseRequestLine(const std::string &line);
-    void parseHeader(const std::string &headerLine);
-    void parseBody(const std::string &bodyContent);
+    void parse_request_line(const std::string &line);
+    void parse_header(const std::string &header_line);
+    void parse_body(const std::string &body_content);
 
 public:
     HttpRequest();
@@ -29,22 +29,22 @@ public:
 
     ~HttpRequest() = default;
 
-    static HttpRequest fromString(std::string rawRequest);
+    static HttpRequest from_string(std::string raw_request);
 
-    HttpMethod getMethod() const;
-    const std::string &getUri() const;
-    const std::string &getVersion() const;
-    const std::map<std::string, std::string> &getHeaders() const;
-    const std::string &getBody() const;
+    HttpMethod get_method() const;
+    const std::string &get_uri() const;
+    const std::string &get_version() const;
+    const std::map<std::string, std::string> &get_headers() const;
+    const std::string &get_body() const;
 
-    void setMethod(HttpMethod method);
-    void setUri(const std::string &uri);
-    void setVersion(const std::string &version);
-    void addHeader(const std::string &name, const std::string &value);
-    void removeHeader(const std::string &name);
-    void setBody(const std::string &body);
+    void set_method(HttpMethod method);
+    void set_uri(const std::string &uri);
+    void set_version(const std::string &version);
+    void add_header(const std::string &name, const std::string &value);
+    void remove_header(const std::string &name);
+    void set_body(const std::string &body);
 
-    std::string toString() const;
+    std::string to_string() const;
 };
 
 #endif // HTTPREQUEST_HPP

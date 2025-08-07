@@ -39,19 +39,19 @@ public:
     void delete_(const std::string &path, RouteHandler handler);
 
     // Generic route registration
-    void addRoute(HttpMethod method, const std::string &path, RouteHandler handler);
+    void add_route(HttpMethod method, const std::string &path, RouteHandler handler);
 
     // Set custom error handlers
-    void setNotFoundHandler(RouteHandler handler);
-    void setMethodNotAllowedHandler(RouteHandler handler);
+    void set_not_found_handler(RouteHandler handler);
+    void set_method_not_allowed_handler(RouteHandler handler);
 
     // Route matching and execution
-    HttpResponse handleRequest(const HttpRequest &request);
+    HttpResponse handle_request(const HttpRequest &request);
 
 private:
-    RouteHandler findHandler(const HttpRequest &request);
-    HttpResponse createNotFoundResponse();
-    HttpResponse createMethodNotAllowedResponse();
+    RouteHandler find_handler(const HttpRequest &request);
+    HttpResponse create_not_found_response();
+    HttpResponse create_method_not_allowed_response();
 };
 
 #endif // ROUTER_HPP

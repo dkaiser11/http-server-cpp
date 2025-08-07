@@ -36,12 +36,12 @@ HttpServer::~HttpServer()
     std::cout << "Server socket closed\n";
 }
 
-void HttpServer::setRouter(const Router &router)
+void HttpServer::set_router(const Router &router)
 {
     m_router = router;
 }
 
-const Router &HttpServer::getRouter() const
+const Router &HttpServer::get_router() const
 {
     return m_router;
 }
@@ -134,7 +134,7 @@ void HttpServer::handle_client(int client_file_descriptor)
     }
 
     // Use router to handle the request and generate response
-    HttpResponse response = m_router.handleRequest(request);
+    HttpResponse response = m_router.handle_request(request);
 
     if (send_response(client_file_descriptor, response) < 0)
     {
@@ -144,9 +144,9 @@ void HttpServer::handle_client(int client_file_descriptor)
     else
     {
         std::lock_guard<std::mutex> lock(m_output_mutex);
-        std::cout << "Request processed: " << static_cast<int>(request.getMethod())
-                  << " " << request.getUri() << " -> "
-                  << static_cast<int>(response.getCode()) << "\n";
+        std::cout << "Request processed: " << static_cast<int>(request.get_method())
+                  << " " << request.get_uri() << " -> "
+                  << static_cast<int>(response.get_code()) << "\n";
     }
 
     close(client_file_descriptor);
@@ -178,7 +178,7 @@ int HttpServer::receive_request(int client_file_descriptor, HttpRequest &request
 
     try
     {
-        request = HttpRequest::fromString(std::string(buffer, bytes_received));
+        request = HttpRequest::from_string(std::string(buffer, bytes_received));
     }
     catch (const std::exception &e)
     {
@@ -192,7 +192,7 @@ int HttpServer::receive_request(int client_file_descriptor, HttpRequest &request
 
 int HttpServer::send_response(int client_file_descriptor, HttpResponse &response)
 {
-    std::string response_str = response.toString();
+    std::string response_str = response.to_string();
     int bytes_sent = send(client_file_descriptor, response_str.c_str(), response_str.size(), 0);
 
     if (bytes_sent < 0)
@@ -239,9 +239,9 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
     }
     catch (const std::filesystem::filesystem_error &e)
     {
-        response.setCode(HttpCode::NotFound);
-        response.setBody("<html><body><h1>404 Not Found</h1></body></html>");
-        response.addHeader("Content-Type", "text/html");
+        response.set_code(HttpCode::NotFound);
+        response.set_body("<html><body><h1>404 Not Found</h1></body></html>");
+        response.add_header("Content-Type", "text/html");
         return response;
     }
 
@@ -249,18 +249,18 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
     auto relative_path = std::filesystem::relative(canonical_full_path, canonical_web_root);
     if (relative_path.string().find("..") == 0)
     {
-        response.setCode(HttpCode::Forbidden);
-        response.setBody("<html><body><h1>403 Forbidden</h1></body></html>");
-        response.addHeader("Content-Type", "text/html");
+        response.set_code(HttpCode::Forbidden);
+        response.set_body("<html><body><h1>403 Forbidden</h1></body></html>");
+        response.add_header("Content-Type", "text/html");
         return response;
     }
 
     // Check if file exists and is a regular file
     if (!std::filesystem::exists(canonical_full_path) || !std::filesystem::is_regular_file(canonical_full_path))
     {
-        response.setCode(HttpCode::NotFound);
-        response.setBody("<html><body><h1>404 Not Found</h1><p>" + canonical_full_path.string() + "</p></body></html>");
-        response.addHeader("Content-Type", "text/html");
+        response.set_code(HttpCode::NotFound);
+        response.set_body("<html><body><h1>404 Not Found</h1><p>" + canonical_full_path.string() + "</p></body></html>");
+        response.add_header("Content-Type", "text/html");
         return response;
     }
 
@@ -268,9 +268,9 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
     std::ifstream file(canonical_full_path, std::ios::binary);
     if (!file.is_open())
     {
-        response.setCode(HttpCode::InternalServerError);
-        response.setBody("<html><body><h1>500 Internal Server Error</h1></body></html>");
-        response.addHeader("Content-Type", "text/html");
+        response.set_code(HttpCode::InternalServerError);
+        response.set_body("<html><body><h1>500 Internal Server Error</h1></body></html>");
+        response.add_header("Content-Type", "text/html");
         return response;
     }
 
@@ -319,10 +319,10 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
         content_type = "image/x-icon";
     }
 
-    response.setCode(HttpCode::OK);
-    response.setBody(content);
-    response.addHeader("Content-Type", content_type);
-    response.addHeader("Content-Length", std::to_string(content.length()));
+    response.set_code(HttpCode::OK);
+    response.set_body(content);
+    response.add_header("Content-Type", content_type);
+    response.add_header("Content-Length", std::to_string(content.length()));
 
     return response;
 }
