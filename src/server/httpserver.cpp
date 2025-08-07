@@ -8,6 +8,9 @@
 #include <sys/socket.h>
 #include <mutex>
 #include <netinet/in.h>
+#include <fstream>
+#include <sstream>
+#include <filesystem>
 
 HttpServer::HttpServer()
     : m_server_file_descriptor(-1),
@@ -188,4 +191,127 @@ int HttpServer::send_response(int client_file_descriptor, HttpResponse &response
     }
 
     return bytes_sent;
+}
+
+HttpResponse HttpServer::serve_static_file(const std::string &file_path, const std::string &web_root)
+{
+    HttpResponse response;
+
+    // Construct full path
+    std::filesystem::path full_path = std::filesystem::path(web_root) / file_path;
+
+    // Security: prevent directory traversal
+    std::filesystem::path canonical_web_root;
+    std::filesystem::path canonical_full_path;
+
+    try
+    {
+        // Check if web_root exists, if not create canonical path anyway
+        if (std::filesystem::exists(web_root))
+        {
+            canonical_web_root = std::filesystem::canonical(web_root);
+        }
+        else
+        {
+            canonical_web_root = std::filesystem::absolute(web_root);
+        }
+
+        // Try to get canonical path for the file
+        if (std::filesystem::exists(full_path))
+        {
+            canonical_full_path = std::filesystem::canonical(full_path);
+        }
+        else
+        {
+            canonical_full_path = std::filesystem::absolute(full_path);
+        }
+    }
+    catch (const std::filesystem::filesystem_error &e)
+    {
+        response.setCode(HttpCode::NotFound);
+        response.setBody("<html><body><h1>404 Not Found</h1></body></html>");
+        response.addHeader("Content-Type", "text/html");
+        return response;
+    }
+
+    // Check if file is within web root (security)
+    auto relative_path = std::filesystem::relative(canonical_full_path, canonical_web_root);
+    if (relative_path.string().find("..") == 0)
+    {
+        response.setCode(HttpCode::Forbidden);
+        response.setBody("<html><body><h1>403 Forbidden</h1></body></html>");
+        response.addHeader("Content-Type", "text/html");
+        return response;
+    }
+
+    // Check if file exists and is a regular file
+    if (!std::filesystem::exists(canonical_full_path) || !std::filesystem::is_regular_file(canonical_full_path))
+    {
+        response.setCode(HttpCode::NotFound);
+        response.setBody("<html><body><h1>404 Not Found</h1><p>" + canonical_full_path.string() + "</p></body></html>");
+        response.addHeader("Content-Type", "text/html");
+        return response;
+    }
+
+    // Read file
+    std::ifstream file(canonical_full_path, std::ios::binary);
+    if (!file.is_open())
+    {
+        response.setCode(HttpCode::InternalServerError);
+        response.setBody("<html><body><h1>500 Internal Server Error</h1></body></html>");
+        response.addHeader("Content-Type", "text/html");
+        return response;
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string content = buffer.str();
+
+    // Set content type based on file extension
+    std::string extension = canonical_full_path.extension().string();
+    std::string content_type = "text/plain";
+
+    if (extension == ".html" || extension == ".htm")
+    {
+        content_type = "text/html";
+    }
+    else if (extension == ".css")
+    {
+        content_type = "text/css";
+    }
+    else if (extension == ".js")
+    {
+        content_type = "application/javascript";
+    }
+    else if (extension == ".json")
+    {
+        content_type = "application/json";
+    }
+    else if (extension == ".png")
+    {
+        content_type = "image/png";
+    }
+    else if (extension == ".jpg" || extension == ".jpeg")
+    {
+        content_type = "image/jpeg";
+    }
+    else if (extension == ".gif")
+    {
+        content_type = "image/gif";
+    }
+    else if (extension == ".svg")
+    {
+        content_type = "image/svg+xml";
+    }
+    else if (extension == ".ico")
+    {
+        content_type = "image/x-icon";
+    }
+
+    response.setCode(HttpCode::OK);
+    response.setBody(content);
+    response.addHeader("Content-Type", content_type);
+    response.addHeader("Content-Length", std::to_string(content.length()));
+
+    return response;
 }

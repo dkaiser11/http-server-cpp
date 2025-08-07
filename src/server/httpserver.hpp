@@ -35,6 +35,8 @@ public:
     void handle_client(int client_file_descriptor);
     int receive_request(int client_file_descriptor, HttpRequest &request);
     int send_response(int client_file_descriptor, HttpResponse &response);
+
+    HttpResponse serve_static_file(const std::string &file_path, const std::string &web_root = "www");
 };
 
 #endif // HTTPSERVER_HPP

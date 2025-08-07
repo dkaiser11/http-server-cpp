@@ -5,35 +5,32 @@ int main()
 {
     Router router;
 
-    router.get("/", [](const HttpRequest &) -> HttpResponse
+    router.get("/", [](const HttpRequest &request) -> HttpResponse
                {
-        HttpResponse response;
-        response.addHeader("Content-Type", "text/html");
-        response.setBody("<html><body><h1>Hello world!</h1></body></html>");
-        return response; });
+                    HttpServer server;
+                    return server.serve_static_file("index.html"); });
 
-    router.get("/\\d+", [](const HttpRequest &) -> HttpResponse
+    router.get(".*\\.(html|htm|css|js|png|jpg|jpeg|gif|svg|ico|json)$",
+               [](const HttpRequest &request) -> HttpResponse
                {
-        HttpResponse response;
-        response.addHeader("Content-Type", "text/html");
-        response.setBody("<html><body><h1>Hello number!</h1></body></html>");
-        return response; });
+                   HttpServer server;
+                   std::string path = request.getUri();
 
-    router.get("/lol/1", [](const HttpRequest &) -> HttpResponse
-               {
-        HttpResponse response;
-        response.addHeader("Content-Type", "text/html");
-        response.setBody("<html><body><h1>1!</h1></body></html>");
-        return response; });
+                   if (path.front() == '/')
+                   {
+                       path = path.substr(1);
+                   }
 
-    router.get("/lol/2", [](const HttpRequest &) -> HttpResponse
-               {
-        HttpResponse response;
-        response.addHeader("Content-Type", "text/html");
-        response.setBody("<html><body><h1>2!</h1></body></html>");
-        return response; });
+                   if (path.empty())
+                   {
+                       path = "index.html";
+                   }
+
+                   return server.serve_static_file(path);
+               });
 
     HttpServer server(router);
+
     int exit_code = server.run();
     return exit_code;
 }

@@ -85,3 +85,6 @@ gmon.out
 
 # Static analysis
 cppcheck-result.xml
+
+# Served files
+www/*
