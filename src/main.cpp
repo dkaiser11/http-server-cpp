@@ -3,17 +3,15 @@
 
 int main()
 {
+    HttpServer server;
     Router router;
 
-    router.get("/", [](const HttpRequest &request) -> HttpResponse
-               {
-                    HttpServer server;
-                    return server.serve_static_file("index.html"); });
+    router.get("/", [&server](const HttpRequest &request) -> HttpResponse
+               { return server.serve_static_file("index.html"); });
 
     router.get(".*\\.(html|htm|css|js|png|jpg|jpeg|gif|svg|ico|json)$",
-               [](const HttpRequest &request) -> HttpResponse
+               [&server](const HttpRequest &request) -> HttpResponse
                {
-                   HttpServer server;
                    std::string path = request.getUri();
 
                    if (path.front() == '/')
@@ -29,7 +27,7 @@ int main()
                    return server.serve_static_file(path);
                });
 
-    HttpServer server(router);
+    server.setRouter(router);
 
     int exit_code = server.run();
     return exit_code;

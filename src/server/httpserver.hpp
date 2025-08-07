@@ -27,8 +27,8 @@ public:
 
     ~HttpServer();
 
-    Router &getRouter() { return m_router; }
-    const Router &getRouter() const { return m_router; }
+    void setRouter(const Router &router);
+    const Router &getRouter() const;
 
     int run(int port = 8080, int connection_backlog = 5, int reuse = 1);
 

@@ -11,6 +11,7 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include "httpserver.hpp"
 
 HttpServer::HttpServer()
     : m_server_file_descriptor(-1),
@@ -33,6 +34,16 @@ HttpServer::~HttpServer()
     }
     m_server_file_descriptor = -1;
     std::cout << "Server socket closed\n";
+}
+
+void HttpServer::setRouter(const Router &router)
+{
+    m_router = router;
+}
+
+const Router &HttpServer::getRouter() const
+{
+    return m_router;
 }
 
 int HttpServer::run(int port, int connection_backlog, int reuse)
