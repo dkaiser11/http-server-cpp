@@ -17,6 +17,7 @@ HttpServer::HttpServer()
     : m_server_file_descriptor(-1),
       m_server_address{}
 {
+    init_thread_pool();
 }
 
 HttpServer::HttpServer(const Router &router)
@@ -24,10 +25,13 @@ HttpServer::HttpServer(const Router &router)
       m_server_address{},
       m_router(router)
 {
+    init_thread_pool();
 }
 
 HttpServer::~HttpServer()
 {
+    shutdown_thread_pool();
+
     if (m_server_file_descriptor >= 0)
     {
         close(m_server_file_descriptor);
@@ -111,9 +115,12 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
             std::cout << "Client connected\n";
         }
 
-        std::thread([this, client_file_descriptor]()
-                    { handle_client(client_file_descriptor); })
-            .detach();
+        {
+            std::lock_guard<std::mutex> lock(m_queue_mutex);
+            m_task_queue.emplace([this, client_file_descriptor]()
+                                 { handle_client(client_file_descriptor); });
+        }
+        m_condition.notify_one();
     }
 
     return 0;
@@ -133,7 +140,6 @@ void HttpServer::handle_client(int client_file_descriptor)
         return;
     }
 
-    // Use router to handle the request and generate response
     HttpResponse response = m_router.handle_request(request);
 
     if (send_response(client_file_descriptor, response) < 0)
@@ -208,16 +214,13 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
 {
     HttpResponse response;
 
-    // Construct full path
     std::filesystem::path full_path = std::filesystem::path(web_root) / file_path;
 
-    // Security: prevent directory traversal
     std::filesystem::path canonical_web_root;
     std::filesystem::path canonical_full_path;
 
     try
     {
-        // Check if web_root exists, if not create canonical path anyway
         if (std::filesystem::exists(web_root))
         {
             canonical_web_root = std::filesystem::canonical(web_root);
@@ -227,7 +230,6 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
             canonical_web_root = std::filesystem::absolute(web_root);
         }
 
-        // Try to get canonical path for the file
         if (std::filesystem::exists(full_path))
         {
             canonical_full_path = std::filesystem::canonical(full_path);
@@ -245,7 +247,6 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
         return response;
     }
 
-    // Check if file is within web root (security)
     auto relative_path = std::filesystem::relative(canonical_full_path, canonical_web_root);
     if (relative_path.string().find("..") == 0)
     {
@@ -255,7 +256,6 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
         return response;
     }
 
-    // Check if file exists and is a regular file
     if (!std::filesystem::exists(canonical_full_path) || !std::filesystem::is_regular_file(canonical_full_path))
     {
         response.set_code(HttpCode::NotFound);
@@ -264,7 +264,6 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
         return response;
     }
 
-    // Read file
     std::ifstream file(canonical_full_path, std::ios::binary);
     if (!file.is_open())
     {
@@ -278,7 +277,6 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
     buffer << file.rdbuf();
     std::string content = buffer.str();
 
-    // Set content type based on file extension
     std::string extension = canonical_full_path.extension().string();
     std::string content_type = "text/plain";
 
@@ -325,4 +323,56 @@ HttpResponse HttpServer::serve_static_file(const std::string &file_path, const s
     response.add_header("Content-Length", std::to_string(content.length()));
 
     return response;
+}
+
+void HttpServer::init_thread_pool(size_t num_threads)
+{
+    for (size_t i = 0; i < num_threads; ++i)
+    {
+        m_worker_threads.emplace_back(&HttpServer::worker_thread, this);
+    }
+}
+
+void HttpServer::worker_thread()
+{
+    while (true)
+    {
+        std::function<void()> task;
+        {
+            std::unique_lock<std::mutex> lock(m_queue_mutex);
+            m_condition.wait(lock, [this]
+                             { return m_stop_threads || !m_task_queue.empty(); });
+
+            if (m_stop_threads && m_task_queue.empty())
+                break;
+
+            task = std::move(m_task_queue.front());
+            m_task_queue.pop();
+        }
+        task();
+    }
+}
+
+void HttpServer::shutdown_thread_pool()
+{
+    m_stop_threads = true;
+    m_condition.notify_all();
+
+    for (auto &thread : m_worker_threads)
+    {
+        if (thread.joinable())
+        {
+            thread.join();
+        }
+    }
+
+    m_worker_threads.clear();
+
+    {
+        std::lock_guard<std::mutex> lock(m_queue_mutex);
+        while (!m_task_queue.empty())
+        {
+            m_task_queue.pop();
+        }
+    }
 }

@@ -6,6 +6,12 @@
 #include "router.hpp"
 #include <arpa/inet.h>
 #include <mutex>
+#include <thread>
+#include <vector>
+#include <queue>
+#include <functional>
+#include <condition_variable>
+#include <atomic>
 
 class HttpServer
 {
@@ -14,6 +20,16 @@ private:
     struct sockaddr_in m_server_address;
     Router m_router;
     mutable std::mutex m_output_mutex;
+
+    std::vector<std::thread> m_worker_threads;
+    std::queue<std::function<void()>> m_task_queue;
+    std::mutex m_queue_mutex;
+    std::condition_variable m_condition;
+    std::atomic<bool> m_stop_threads{false};
+
+    void worker_thread();
+    void init_thread_pool(size_t num_threads = std::thread::hardware_concurrency());
+    void shutdown_thread_pool();
 
 public:
     HttpServer();
