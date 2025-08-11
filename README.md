@@ -1,6 +1,43 @@
 # 🚀 http-server-cpp
 
-A modern, multithreaded C++ HTTP server with static file serving, custom routing, and security features.
+A multithreaded C++ HTTP server with static file serving, custom routing, and basic security features. Inspired by [codecrafters](https://app.codecrafters.io/courses/http-server/overview).
+
+## 🛠️ Build & Run
+
+Requirements: CMake, GCC
+
+### Windows
+```powershell
+.\build.ps1      # Build and test
+.\run.ps1        # Build, test, and run server
+```
+
+### Unix/Linux/Mac
+```bash
+./build.sh       # Build and test
+./run.sh         # Build, test, and run server
+```
+
+## 🌐 Features
+- ⚡ Fast, multithreaded HTTP server
+- 🗂️ Static file serving from `/www`
+- 🔀 Custom routing with regex support
+- 🛡️ Security against directory traversal
+- 🧪 Unit tests with [Google Test](https://github.com/google/googletest)
+
+## 📚 Key Source Files
+- [`src/main.cpp`](./src/main.cpp) — Main entry point
+- [`src/server/httpserver.hpp`](./src/server/httpserver.hpp) — Server class
+- [`src/server/router.hpp`](./src/server/router.hpp) — Routing logic
+- [`src/http/httprequest.hpp`](./src/http/httprequest.hpp) — HTTP request parsing
+- [`src/http/httpresponse.hpp`](./src/http/httpresponse.hpp) — HTTP response formatting
+
+## 📄 Example Static Files
+- [`www/index.html`](./www/index.html) — Home page
+- [`www/about.html`](./www/about.html) — About page
+- [`www/styles.css`](./www/styles.css) — CSS styles
+- [`www/script.js`](./www/script.js) — Demo JavaScript
+- [`www/images/monkey.jpg`](./www/images/monkey.jpg) — Sample image
 
 ## 📁 Project Structure
 
@@ -37,34 +74,6 @@ http-server-cpp/
 └── .github/            # GitHub workflows & instructions
 ```
 
-## 🛠️ Build & Run
-
-### Windows
-```powershell
-.\build.ps1      # Build and test
-.\run.ps1        # Build, test, and run server
-```
-
-### Unix/Linux/Mac
-```bash
-./build.sh       # Build and test
-./run.sh         # Build, test, and run server
-```
-
-## 🌐 Features
-- ⚡ Fast, multithreaded HTTP server
-- 🗂️ Static file serving from `/www`
-- 🔀 Custom routing with regex support
-- 🛡️ Security against directory traversal
-- 🧪 Unit tests with [Google Test](https://github.com/google/googletest)
-
-## 📄 Example Static Files
-- [`www/index.html`](./www/index.html) — Home page
-- [`www/about.html`](./www/about.html) — About page
-- [`www/styles.css`](./www/styles.css) — CSS styles
-- [`www/script.js`](./www/script.js) — Demo JavaScript
-- [`www/images/monkey.jpg`](./www/images/monkey.jpg) — Sample image
-
 ## 🧪 Testing
 Tests are located in [`tests/`](./tests/):
 - [`tests_httprequest.cpp`](./tests/tests_httprequest.cpp)
@@ -73,18 +82,8 @@ Tests are located in [`tests/`](./tests/):
 
 Run tests automatically with the build scripts.
 
-## 📚 Key Source Files
-- [`src/main.cpp`](./src/main.cpp) — Main entry point
-- [`src/server/httpserver.hpp`](./src/server/httpserver.hpp) — Server class
-- [`src/server/router.hpp`](./src/server/router.hpp) — Routing logic
-- [`src/http/httprequest.hpp`](./src/http/httprequest.hpp) — HTTP request parsing
-- [`src/http/httpresponse.hpp`](./src/http/httpresponse.hpp) — HTTP response formatting
-
 ## 🤝 Contributing
 Pull requests and issues are welcome! See [Google Test](https://github.com/google/googletest) for testing framework info.
 
 ## 📄 License
 This project is licensed under the MIT License.
-
----
-Made with ❤️ in C++
