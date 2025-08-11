@@ -6,7 +6,7 @@ int main()
     HttpServer server;
     Router router;
 
-    router.get("/", [&server](const HttpRequest &request) -> HttpResponse
+    router.get("/", [&server](const HttpRequest &) -> HttpResponse
                { return server.serve_static_file("index.html"); });
 
     router.get(".*\\.(html|htm|css|js|png|jpg|jpeg|gif|svg|ico|json)$",
