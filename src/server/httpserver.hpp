@@ -4,6 +4,7 @@
 #include "http/httprequest.hpp"
 #include "http/httpresponse.hpp"
 #include "router.hpp"
+#include "socket_wrapper.hpp"
 #include <arpa/inet.h>
 #include <mutex>
 #include <thread>
@@ -16,7 +17,7 @@
 class HttpServer
 {
 private:
-    int m_server_file_descriptor;
+    SocketWrapper m_server_socket;
     struct sockaddr_in m_server_address;
     Router m_router;
     mutable std::mutex m_output_mutex;
@@ -48,9 +49,10 @@ public:
 
     int run(int port = 8080, int connection_backlog = 5, int reuse = 1);
 
-    void handle_client(int client_file_descriptor);
-    int receive_request(int client_file_descriptor, HttpRequest &request);
-    int send_response(int client_file_descriptor, HttpResponse &response);
+    void handle_client(SocketWrapper client_socket);
+    void handle_client_fd(int client_fd);
+    int receive_request(const SocketWrapper &client_socket, HttpRequest &request);
+    int send_response(const SocketWrapper &client_socket, HttpResponse &response);
 
     HttpResponse serve_static_file(const std::string &file_path, const std::string &web_root = "www");
 };

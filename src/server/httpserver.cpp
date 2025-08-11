@@ -11,17 +11,17 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
-#include "httpserver.hpp"
+#include <functional>
 
 HttpServer::HttpServer()
-    : m_server_file_descriptor(-1),
+    : m_server_socket(),
       m_server_address{}
 {
     init_thread_pool();
 }
 
 HttpServer::HttpServer(const Router &router)
-    : m_server_file_descriptor(-1),
+    : m_server_socket(),
       m_server_address{},
       m_router(router)
 {
@@ -31,12 +31,6 @@ HttpServer::HttpServer(const Router &router)
 HttpServer::~HttpServer()
 {
     shutdown_thread_pool();
-
-    if (m_server_file_descriptor >= 0)
-    {
-        close(m_server_file_descriptor);
-    }
-    m_server_file_descriptor = -1;
     std::cout << "Server socket closed\n";
 }
 
@@ -55,18 +49,17 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
-    m_server_file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
+    m_server_socket.reset(socket(AF_INET, SOCK_STREAM, 0));
 
-    if (m_server_file_descriptor < 0)
+    if (!m_server_socket.is_valid())
     {
         std::cerr << "Failed to create server socket: " << strerror(errno) << "\n";
         return 1;
     }
 
-    if (setsockopt(m_server_file_descriptor, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+    if (setsockopt(m_server_socket.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
     {
         std::cerr << "setsockopt failed: " << strerror(errno) << "\n";
-        close(m_server_file_descriptor);
         return 1;
     }
 
@@ -74,17 +67,15 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
     m_server_address.sin_addr.s_addr = INADDR_ANY;
     m_server_address.sin_port = htons(port);
 
-    if (bind(m_server_file_descriptor, (struct sockaddr *)&m_server_address, sizeof(m_server_address)) != 0)
+    if (bind(m_server_socket.get(), (struct sockaddr *)&m_server_address, sizeof(m_server_address)) != 0)
     {
         std::cerr << "Failed to bind to port " << port << ": " << strerror(errno) << "\n";
-        close(m_server_file_descriptor);
         return 1;
     }
 
-    if (listen(m_server_file_descriptor, connection_backlog) != 0)
+    if (listen(m_server_socket.get(), connection_backlog) != 0)
     {
         std::cerr << "listen failed: " << strerror(errno) << "\n";
-        close(m_server_file_descriptor);
         return 1;
     }
 
@@ -97,9 +88,9 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
 
     while (running)
     {
-        int client_file_descriptor = accept(m_server_file_descriptor, (struct sockaddr *)&client_address, (socklen_t *)&client_address_length);
+        int client_fd = accept(m_server_socket.get(), (struct sockaddr *)&client_address, (socklen_t *)&client_address_length);
 
-        if (client_file_descriptor < 0)
+        if (client_fd < 0)
         {
             if (errno == EINTR || errno == EBADF)
                 break;
@@ -117,8 +108,7 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
 
         {
             std::lock_guard<std::mutex> lock(m_queue_mutex);
-            m_task_queue.emplace([this, client_file_descriptor]()
-                                 { handle_client(client_file_descriptor); });
+            m_task_queue.emplace(std::bind(&HttpServer::handle_client_fd, this, client_fd));
         }
         m_condition.notify_one();
     }
@@ -126,23 +116,22 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
     return 0;
 }
 
-void HttpServer::handle_client(int client_file_descriptor)
+void HttpServer::handle_client(SocketWrapper client_socket)
 {
     HttpRequest request;
 
-    if (receive_request(client_file_descriptor, request) < 0)
+    if (receive_request(client_socket, request) < 0)
     {
         {
             std::lock_guard<std::mutex> lock(m_output_mutex);
             std::cerr << "Failed to receive request: " << strerror(errno) << "\n";
         }
-        close(client_file_descriptor);
         return;
     }
 
     HttpResponse response = m_router.handle_request(request);
 
-    if (send_response(client_file_descriptor, response) < 0)
+    if (send_response(client_socket, response) < 0)
     {
         std::lock_guard<std::mutex> lock(m_output_mutex);
         std::cerr << "Failed to send response to client\n";
@@ -154,14 +143,18 @@ void HttpServer::handle_client(int client_file_descriptor)
                   << " " << request.get_uri() << " -> "
                   << static_cast<int>(response.get_code()) << "\n";
     }
-
-    close(client_file_descriptor);
 }
 
-int HttpServer::receive_request(int client_file_descriptor, HttpRequest &request)
+void HttpServer::handle_client_fd(int client_fd)
+{
+    SocketWrapper client_socket(client_fd);
+    handle_client(std::move(client_socket));
+}
+
+int HttpServer::receive_request(const SocketWrapper &client_socket, HttpRequest &request)
 {
     char buffer[4096];
-    int bytes_received = recv(client_file_descriptor, buffer, sizeof(buffer) - 1, 0);
+    int bytes_received = recv(client_socket.get(), buffer, sizeof(buffer) - 1, 0);
 
     if (bytes_received <= 0)
     {
@@ -196,10 +189,10 @@ int HttpServer::receive_request(int client_file_descriptor, HttpRequest &request
     return bytes_received;
 }
 
-int HttpServer::send_response(int client_file_descriptor, HttpResponse &response)
+int HttpServer::send_response(const SocketWrapper &client_socket, HttpResponse &response)
 {
     std::string response_str = response.to_string();
-    int bytes_sent = send(client_file_descriptor, response_str.c_str(), response_str.size(), 0);
+    int bytes_sent = send(client_socket.get(), response_str.c_str(), response_str.size(), 0);
 
     if (bytes_sent < 0)
     {
