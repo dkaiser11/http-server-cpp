@@ -41,8 +41,8 @@ http-server-cpp/
 
 ### Windows
 ```powershell
-./build.ps1      # Build and test
-./run.ps1        # Build, test, and run server
+.\build.ps1      # Build and test
+.\run.ps1        # Build, test, and run server
 ```
 
 ### Unix/Linux/Mac
