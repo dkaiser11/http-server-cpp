@@ -32,26 +32,17 @@ private:
 public:
     Router();
 
-    // Add routes
     void get(const std::string &path, RouteHandler handler);
     void post(const std::string &path, RouteHandler handler);
     void put(const std::string &path, RouteHandler handler);
     void delete_(const std::string &path, RouteHandler handler);
 
-    // Generic route registration
     void add_route(HttpMethod method, const std::string &path, RouteHandler handler);
 
-    // Set custom error handlers
     void set_not_found_handler(RouteHandler handler);
     void set_method_not_allowed_handler(RouteHandler handler);
 
-    // Route matching and execution
     HttpResponse handle_request(const HttpRequest &request);
-
-private:
-    RouteHandler find_handler(const HttpRequest &request);
-    HttpResponse create_not_found_response();
-    HttpResponse create_method_not_allowed_response();
 };
 
 #endif // ROUTER_HPP

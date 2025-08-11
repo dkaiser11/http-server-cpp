@@ -2,7 +2,6 @@
 #define HTTPMETHOD_HPP
 
 #include <string>
-#include <optional>
 #include <stdexcept>
 
 enum class HttpMethod

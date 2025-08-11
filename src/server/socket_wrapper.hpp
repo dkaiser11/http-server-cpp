@@ -2,7 +2,6 @@
 #define SOCKET_WRAPPER_HPP
 
 #include <unistd.h>
-#include <utility>
 
 class SocketWrapper
 {

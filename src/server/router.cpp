@@ -1,5 +1,4 @@
 #include "server/router.hpp"
-#include <algorithm>
 
 Router::Router()
 {

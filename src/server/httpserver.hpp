@@ -5,14 +5,14 @@
 #include "http/httpresponse.hpp"
 #include "router.hpp"
 #include "socket_wrapper.hpp"
-#include <arpa/inet.h>
 #include <mutex>
+#include <atomic>
+#include <condition_variable>
 #include <thread>
 #include <vector>
 #include <queue>
 #include <functional>
-#include <condition_variable>
-#include <atomic>
+#include <arpa/inet.h>
 
 class HttpServer
 {

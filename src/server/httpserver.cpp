@@ -1,17 +1,17 @@
 #include "server/httpserver.hpp"
 #include <thread>
+#include <mutex>
 #include <atomic>
 #include <cerrno>
 #include <cstring>
 #include <iostream>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <mutex>
-#include <netinet/in.h>
 #include <fstream>
 #include <sstream>
 #include <filesystem>
 #include <functional>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 HttpServer::HttpServer()
     : m_server_socket(),
