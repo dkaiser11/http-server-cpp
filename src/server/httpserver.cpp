@@ -5,13 +5,65 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
-#include <unistd.h>
 #include <fstream>
 #include <sstream>
 #include <filesystem>
 #include <functional>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+class WinsockInitializer
+{
+public:
+    WinsockInitializer()
+    {
+        WSADATA wsaData;
+        int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (result != 0)
+        {
+            throw std::runtime_error("WSAStartup failed: " + std::to_string(result));
+        }
+    }
+
+    ~WinsockInitializer()
+    {
+        WSACleanup();
+    }
+};
+
+static WinsockInitializer winsock_init;
+
+int get_last_error()
+{
+    return WSAGetLastError();
+}
+
+std::string get_error_string(int error_code)
+{
+    char *msg = nullptr;
+    FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                   NULL, error_code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&msg, 0, NULL);
+    std::string result = msg ? msg : "Unknown error";
+    LocalFree(msg);
+    return result;
+}
+#else
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+int get_last_error()
+{
+    return errno;
+}
+
+std::string get_error_string(int error_code)
+{
+    return strerror(error_code);
+}
+#endif
 
 HttpServer::HttpServer()
     : m_server_socket(),
@@ -53,13 +105,15 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
 
     if (!m_server_socket.is_valid())
     {
-        std::cerr << "Failed to create server socket: " << strerror(errno) << "\n";
+        int error = get_last_error();
+        std::cerr << "Failed to create server socket: " << get_error_string(error) << "\n";
         return 1;
     }
 
-    if (setsockopt(m_server_socket.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+    if (setsockopt(m_server_socket.get(), SOL_SOCKET, SO_REUSEADDR, (const char *)&reuse, sizeof(reuse)) < 0)
     {
-        std::cerr << "setsockopt failed: " << strerror(errno) << "\n";
+        int error = get_last_error();
+        std::cerr << "setsockopt failed: " << get_error_string(error) << "\n";
         return 1;
     }
 
@@ -69,13 +123,15 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
 
     if (bind(m_server_socket.get(), (struct sockaddr *)&m_server_address, sizeof(m_server_address)) != 0)
     {
-        std::cerr << "Failed to bind to port " << port << ": " << strerror(errno) << "\n";
+        int error = get_last_error();
+        std::cerr << "Failed to bind to port " << port << ": " << get_error_string(error) << "\n";
         return 1;
     }
 
     if (listen(m_server_socket.get(), connection_backlog) != 0)
     {
-        std::cerr << "listen failed: " << strerror(errno) << "\n";
+        int error = get_last_error();
+        std::cerr << "listen failed: " << get_error_string(error) << "\n";
         return 1;
     }
 
@@ -88,8 +144,21 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
 
     while (running)
     {
-        int client_fd = accept(m_server_socket.get(), (struct sockaddr *)&client_address, (socklen_t *)&client_address_length);
+        socket_t client_fd = accept(m_server_socket.get(), (struct sockaddr *)&client_address, (socklen_t *)&client_address_length);
 
+#ifdef _WIN32
+        if (client_fd == INVALID_SOCKET)
+        {
+            int error = get_last_error();
+            if (error == WSAEINTR || error == WSAENOTSOCK)
+                break;
+            {
+                std::lock_guard<std::mutex> lock(m_output_mutex);
+                std::cerr << "Failed to accept connection: " << get_error_string(error) << "\n";
+            }
+            continue;
+        }
+#else
         if (client_fd < 0)
         {
             if (errno == EINTR || errno == EBADF)
@@ -100,6 +169,7 @@ int HttpServer::run(int port, int connection_backlog, int reuse)
             }
             continue;
         }
+#endif
 
         {
             std::lock_guard<std::mutex> lock(m_output_mutex);
@@ -124,7 +194,8 @@ void HttpServer::handle_client(SocketWrapper client_socket)
     {
         {
             std::lock_guard<std::mutex> lock(m_output_mutex);
-            std::cerr << "Failed to receive request: " << strerror(errno) << "\n";
+            int error = get_last_error();
+            std::cerr << "Failed to receive request: " << get_error_string(error) << "\n";
         }
         return;
     }
@@ -145,7 +216,7 @@ void HttpServer::handle_client(SocketWrapper client_socket)
     }
 }
 
-void HttpServer::handle_client_fd(int client_fd)
+void HttpServer::handle_client_fd(socket_t client_fd)
 {
     SocketWrapper client_socket(client_fd);
     handle_client(std::move(client_socket));
@@ -162,7 +233,10 @@ int HttpServer::receive_request(const SocketWrapper &client_socket, HttpRequest 
         if (bytes_received == 0)
             std::cout << "Client disconnected\n";
         else
-            std::cerr << "Failed to receive request: " << strerror(errno) << "\n";
+        {
+            int error = get_last_error();
+            std::cerr << "Failed to receive request: " << get_error_string(error) << "\n";
+        }
 
         return bytes_received;
     }
@@ -197,7 +271,8 @@ int HttpServer::send_response(const SocketWrapper &client_socket, HttpResponse &
     if (bytes_sent < 0)
     {
         std::lock_guard<std::mutex> lock(m_output_mutex);
-        std::cerr << "Failed to send response: " << strerror(errno) << "\n";
+        int error = get_last_error();
+        std::cerr << "Failed to send response: " << get_error_string(error) << "\n";
     }
 
     return bytes_sent;

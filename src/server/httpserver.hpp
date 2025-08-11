@@ -12,7 +12,15 @@
 #include <vector>
 #include <queue>
 #include <functional>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
 
 class HttpServer
 {
@@ -50,7 +58,7 @@ public:
     int run(int port = 8080, int connection_backlog = 5, int reuse = 1);
 
     void handle_client(SocketWrapper client_socket);
-    void handle_client_fd(int client_fd);
+    void handle_client_fd(socket_t client_fd);
     int receive_request(const SocketWrapper &client_socket, HttpRequest &request);
     int send_response(const SocketWrapper &client_socket, HttpResponse &response);
 

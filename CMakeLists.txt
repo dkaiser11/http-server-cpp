@@ -20,9 +20,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
     # Enable sanitizers for debugging (optional)
     option(ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" ON)
-    if(ENABLE_SANITIZERS)
+    if(ENABLE_SANITIZERS AND NOT WIN32)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer")
         set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address -fsanitize=undefined")
+    elseif(ENABLE_SANITIZERS AND WIN32)
+        message(WARNING "Sanitizers are not available on this Windows/MinGW configuration. Disabling sanitizers.")
+        set(ENABLE_SANITIZERS OFF)
     endif()
 endif()
 
@@ -49,6 +52,14 @@ target_include_directories(server PRIVATE "src")
 # Link library to executable if it exists
 if(LIB_SOURCES)
     target_link_libraries(server http_server_lib)
+endif()
+
+# Platform-specific libraries
+if(WIN32)
+    target_link_libraries(server ws2_32 wsock32)
+    if(LIB_SOURCES)
+        target_link_libraries(http_server_lib ws2_32 wsock32)
+    endif()
 endif()
 
 # Enable testing
@@ -79,8 +90,8 @@ if(TEST_SOURCES)
         target_compile_definitions(tests PRIVATE DEBUG)
         # Enable verbose test output in debug mode
         target_compile_definitions(tests PRIVATE GTEST_COLOR=1)
-        # Link sanitizers if enabled
-        if(ENABLE_SANITIZERS)
+        # Link sanitizers if enabled and not on Windows
+        if(ENABLE_SANITIZERS AND NOT WIN32)
             target_link_options(tests PRIVATE -fsanitize=address -fsanitize=undefined)
         endif()
     endif()
@@ -88,6 +99,11 @@ if(TEST_SOURCES)
     # Link with the library if it exists
     if(LIB_SOURCES)
         target_link_libraries(tests http_server_lib)
+    endif()
+    
+    # Platform-specific libraries for tests
+    if(WIN32)
+        target_link_libraries(tests ws2_32 wsock32)
     endif()
     
     # Register tests with CTest
